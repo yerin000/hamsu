@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 # 1. Page Config
 st.set_page_config(
@@ -10,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Sidebar Navigation (완전히 분리된 4개 모듈)
+# 2. Sidebar Navigation
 st.sidebar.title("📐 삼각함수 학습 메뉴")
 menu = st.sidebar.radio(
     "학습할 항목을 선택하세요:",
@@ -23,22 +22,22 @@ menu = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 왼쪽 메뉴에서 원하시는 학습 주제를 클릭하시면 해당 학습 화면만 독립적으로 나타납니다.")
+st.sidebar.info("💡 왼쪽 메뉴에서 원하시는 학습 주제를 선택할 수 있습니다.")
 
 
 # ==============================================================================
-# [모듈 1] 단위원과 삼각함수의 개념
+# [모듈 1] 단위원과 삼각함수의 개념 (단위원 전용)
 # ==============================================================================
 if menu == "1. 단위원과 삼각함수의 개념":
     st.title("1. 단위원으로 배우는 삼각함수 개념")
     st.write("""
-    반지름의 길이가 1인 **단위원(Unit Circle)** 상에서 각도 $\\theta$에 따른 삼각함수의 정의를 확인하세요:
-    - **$\cos(\\theta)$ (파란색)**: 동경 끝점의 **X좌표**
-    - **$\sin(\\theta)$ (빨간색)**: 동경 끝점의 **Y좌표**
+    반지름의 길이가 1인 **단위원(Unit Circle)** 상에서 각도 $\\theta$에 따른 삼각함수의 정의입니다:
+    - **$\cos(\\theta)$ (파란색)**: 동경 끝점의 **X좌표** (X축 선)
+    - **$\sin(\\theta)$ (빨간색)**: 동경 끝점의 **Y좌표** (Y축 선)
     - **$\\tan(\\theta)$ (초록색)**: 접선 $X=1$ 과 만나는 **Y 높이**
     """)
 
-    # 조작 파라미터
+    # 각도 입력 및 값 계산
     col_input, col_metric = st.columns([2, 3])
     with col_input:
         angle_deg = st.slider("각도 θ (도, Degree)", 0, 360, 45, step=5)
@@ -54,41 +53,84 @@ if menu == "1. 단위원과 삼각함수의 개념":
         c2.metric("Sin (Y좌표)", f"{sin_val:.3f}")
         c3.metric("Tan (접선높이)", f"{tan_val:.3f}" if not np.isnan(tan_val) else "무한대")
 
-    # 서브플롯 생성 (왼쪽: 단위원 / 오른쪽: 사인파 매핑)
-    fig1 = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=("단위원 (Unit Circle)", "Sin 파형 실시간 매핑"),
-        column_widths=[0.45, 0.55]
+    # Plotly 단위원 그래프 생성
+    fig1 = go.Figure()
+
+    # 1) 단위원 테두리 (원)
+    theta_full = np.linspace(0, 2 * np.pi, 300)
+    fig1.add_trace(go.Scatter(
+        x=np.cos(theta_full), y=np.sin(theta_full), 
+        mode='lines', name='단위원 (r=1)', 
+        line=dict(color='lightgray', dash='dot', width=2)
+    ))
+
+    # 2) 동경 (원점에서 끝점 P까지의 선)
+    fig1.add_trace(go.Scatter(
+        x=[0, cos_val], y=[0, sin_val], 
+        mode='lines+markers', name='동경 (r=1)', 
+        line=dict(color='purple', width=3),
+        marker=dict(size=8, color='purple')
+    ))
+
+    # 3) Cos (X축 좌표 선)
+    fig1.add_trace(go.Scatter(
+        x=[0, cos_val], y=[0, 0], 
+        mode='lines', name='Cos (X축 길이)', 
+        line=dict(color='blue', width=5)
+    ))
+
+    # 4) Sin (Y축 좌표 선)
+    fig1.add_trace(go.Scatter(
+        x=[cos_val, cos_val], y=[0, sin_val], 
+        mode='lines', name='Sin (Y축 길이)', 
+        line=dict(color='red', width=5)
+    ))
+
+    # 5) Tan (x=1 접선 상에서의 높이)
+    if not np.isnan(tan_val) and abs(tan_val) <= 3:
+        fig1.add_trace(go.Scatter(
+            x=[1, 1], y=[0, tan_val], 
+            mode='lines', name='Tan (접선 높이)', 
+            line=dict(color='green', width=5)
+        ))
+        # 동경 연장선
+        fig1.add_trace(go.Scatter(
+            x=[0, 1], y=[0, tan_val], 
+            mode='lines', showlegend=False, 
+            line=dict(color='green', dash='dot')
+        ))
+
+    # 점 P 표기
+    fig1.add_trace(go.Scatter(
+        x=[cos_val], y=[sin_val],
+        mode='text', text=[f"  P({cos_val:.2f}, {sin_val:.2f})"],
+        textposition="top right", showlegend=False
+    ))
+
+    # X축, Y축 기준선 및 축 레이아웃 설정
+    fig1.update_xaxes(
+        title_text="<b>X 축</b> (Cos 영역)",
+        range=[-1.6, 1.6], 
+        zeroline=True, zerolinewidth=2, zerolinecolor='black',
+        dtick=0.5, gridcolor='whitesmoke'
+    )
+    fig1.update_yaxes(
+        title_text="<b>Y 축</b> (Sin 영역)",
+        range=[-1.6, 1.6], 
+        zeroline=True, zerolinewidth=2, zerolinecolor='black',
+        scaleanchor="x", scaleratio=1,
+        dtick=0.5, gridcolor='whitesmoke'
     )
 
-    # 단위원 배경
-    theta_full = np.linspace(0, 2 * np.pi, 300)
-    fig1.add_trace(go.Scatter(x=np.cos(theta_full), y=np.sin(theta_full), mode='lines', name='단위원', line=dict(color='gray', dash='dot')), row=1, col=1)
-    
-    # 동경 & 성분
-    fig1.add_trace(go.Scatter(x=[0, cos_val], y=[0, sin_val], mode='lines+markers', name='동경 (r=1)', line=dict(color='purple', width=3)), row=1, col=1)
-    fig1.add_trace(go.Scatter(x=[0, cos_val], y=[0, 0], mode='lines', name='Cos (X축)', line=dict(color='blue', width=4)), row=1, col=1)
-    fig1.add_trace(go.Scatter(x=[cos_val, cos_val], y=[0, sin_val], mode='lines', name='Sin (Y축)', line=dict(color='red', width=4)), row=1, col=1)
+    fig1.update_layout(
+        title="단위원에서의 삼각함수 정의 시각화",
+        width=700,
+        height=650,
+        margin=dict(l=40, r=40, t=50, b=40),
+        legend=dict(x=1.02, y=1, xanchor="left", yanchor="top")
+    )
 
-    if not np.isnan(tan_val) and abs(tan_val) <= 3:
-        fig1.add_trace(go.Scatter(x=[1, 1], y=[0, tan_val], mode='lines', name='Tan (접선)', line=dict(color='green', width=4)), row=1, col=1)
-        fig1.add_trace(go.Scatter(x=[0, 1], y=[0, tan_val], mode='lines', showlegend=False, line=dict(color='green', dash='dot')), row=1, col=1)
-
-    # 우측 파형 매핑
-    x_deg_arr = np.linspace(0, 360, 360)
-    y_sin_full = np.sin(np.radians(x_deg_arr))
-    fig1.add_trace(go.Scatter(x=x_deg_arr, y=y_sin_full, mode='lines', name='Sin 파형', line=dict(color='red')), row=1, col=2)
-    fig1.add_trace(go.Scatter(x=[angle_deg], y=[sin_val], mode='markers', name='현재 Y점', marker=dict(color='red', size=10)), row=1, col=2)
-    fig1.add_vline(x=angle_deg, line_width=1, line_dash="dash", line_color="gray", row=1, col=2)
-
-    # 레이아웃
-    fig1.update_xaxes(range=[-1.5, 1.5], zeroline=True, zerolinecolor='black', row=1, col=1)
-    fig1.update_yaxes(range=[-1.5, 1.5], zeroline=True, zerolinecolor='black', scaleanchor="x", scaleratio=1, row=1, col=1)
-    fig1.update_xaxes(title_text="각도 (°)", range=[0, 360], dtick=90, zeroline=True, row=1, col=2)
-    fig1.update_yaxes(title_text="값", range=[-2, 2], zeroline=True, row=1, col=2)
-    fig1.update_layout(height=520, margin=dict(l=20, r=20, t=40, b=20))
-
-    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(fig1, use_container_width=False)
 
 
 # ==============================================================================
@@ -124,11 +166,12 @@ elif menu == "2. 사인(Sine) 함수 개형":
         fig.add_trace(go.Scatter(x=x_deg, y=y_user, mode='lines', name='변형된 Sin', line=dict(color='red', width=3)))
         fig.add_trace(go.Scatter(x=x_deg, y=y_base, mode='lines', name='기본 Sin (비교용)', opacity=0.4, line=dict(color='gray', dash='dash')))
 
+        # X축과 Y축 강조 설정
+        fig.update_xaxes(title_text="<b>X 축 (각도 °)</b>", range=[-360, 720], dtick=180, zeroline=True, zerolinewidth=2, zerolinecolor='black')
+        fig.update_yaxes(title_text="<b>Y 축 (값)</b>", range=[-6, 6], zeroline=True, zerolinewidth=2, zerolinecolor='black')
+
         fig.update_layout(
             title="사인 함수 개형 변화",
-            xaxis_title="각도 (°)", yaxis_title="Y 값",
-            xaxis=dict(range=[-360, 720], dtick=180, zeroline=True),
-            yaxis=dict(range=[-6, 6], zeroline=True),
             height=550, margin=dict(l=20, r=20, t=40, b=20)
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -167,11 +210,12 @@ elif menu == "3. 코사인(Cosine) 함수 개형":
         fig.add_trace(go.Scatter(x=x_deg, y=y_user, mode='lines', name='변형된 Cos', line=dict(color='blue', width=3)))
         fig.add_trace(go.Scatter(x=x_deg, y=y_base, mode='lines', name='기본 Cos (비교용)', opacity=0.4, line=dict(color='gray', dash='dash')))
 
+        # X축과 Y축 강조 설정
+        fig.update_xaxes(title_text="<b>X 축 (각도 °)</b>", range=[-360, 720], dtick=180, zeroline=True, zerolinewidth=2, zerolinecolor='black')
+        fig.update_yaxes(title_text="<b>Y 축 (값)</b>", range=[-6, 6], zeroline=True, zerolinewidth=2, zerolinecolor='black')
+
         fig.update_layout(
             title="코사인 함수 개형 변화",
-            xaxis_title="각도 (°)", yaxis_title="Y 값",
-            xaxis=dict(range=[-360, 720], dtick=180, zeroline=True),
-            yaxis=dict(range=[-6, 6], zeroline=True),
             height=550, margin=dict(l=20, r=20, t=40, b=20)
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -204,7 +248,6 @@ elif menu == "4. 탄젠트(Tangent) 함수 개형":
         x_deg = np.linspace(-360, 720, 2000)
         tan_inner = B * np.radians(x_deg - C_deg)
         
-        # 점근선 인근에서 값이 튀는 것을 방지하기 위해 값 제한
         y_user = A * np.tan(tan_inner) + D
         y_user[np.abs(np.tan(tan_inner)) > 10] = np.nan
 
@@ -215,11 +258,12 @@ elif menu == "4. 탄젠트(Tangent) 함수 개형":
         fig.add_trace(go.Scatter(x=x_deg, y=y_user, mode='lines', name='변형된 Tan', line=dict(color='green', width=3)))
         fig.add_trace(go.Scatter(x=x_deg, y=y_base, mode='lines', name='기본 Tan (비교용)', opacity=0.4, line=dict(color='gray', dash='dash')))
 
+        # X축과 Y축 강조 설정
+        fig.update_xaxes(title_text="<b>X 축 (각도 °)</b>", range=[-360, 720], dtick=180, zeroline=True, zerolinewidth=2, zerolinecolor='black')
+        fig.update_yaxes(title_text="<b>Y 축 (값)</b>", range=[-6, 6], zeroline=True, zerolinewidth=2, zerolinecolor='black')
+
         fig.update_layout(
             title="탄젠트 함수 개형 변화",
-            xaxis_title="각도 (°)", yaxis_title="Y 값",
-            xaxis=dict(range=[-360, 720], dtick=180, zeroline=True),
-            yaxis=dict(range=[-6, 6], zeroline=True),
             height=550, margin=dict(l=20, r=20, t=40, b=20)
         )
         st.plotly_chart(fig, use_container_width=True)
