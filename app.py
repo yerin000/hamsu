@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
+import random
 
 # 1. Page Config
 st.set_page_config(
@@ -18,7 +19,7 @@ menu = st.sidebar.radio(
         "2. 사인(Sine) 함수 개형",
         "3. 코사인(Cosine) 함수 개형",
         "4. 탄젠트(Tangent) 함수 개형",
-        "5. 📝 학습 점검 퀴즈"
+        "5. 📝 무한 동적 퀴즈 (난이도 선택)"
     ]
 )
 
@@ -32,7 +33,6 @@ st.sidebar.info("💡 왼쪽 메뉴에서 원하는 모듈을 클릭하세요.")
 if menu == "1. 단위원과 삼각함수의 개념":
     st.title("1. 단위원으로 배우는 삼각함수의 정의")
     
-    # 개념 설명글
     st.markdown("""
     ### 📖 개념 설명
     반지름의 길이가 **1인 원**을 **단위원(Unit Circle)**이라고 합니다. 
@@ -233,7 +233,7 @@ elif menu == "3. 코사인(Cosine) 함수 개형":
 
 
 # ==============================================================================
-# [모듈 4] 탄젠트(Tangent) 함수 개형 (점근선 수식 포함)
+# [모듈 4] 탄젠트(Tangent) 함수 개형
 # ==============================================================================
 elif menu == "4. 탄젠트(Tangent) 함수 개형":
     st.title("4. 탄젠트(Tangent) 함수 개형 및 점근선")
@@ -278,8 +278,6 @@ elif menu == "4. 탄젠트(Tangent) 함수 개형":
 
         fig = go.Figure()
 
-        # 점근선 (Asymptotes) 계산 및 주황색 수직 점선으로 추가
-        # n에 따른 점근선 위치: x = (90 + 180*n)/B + C
         asymptotes = []
         for n in range(-10, 15):
             asymptote_x = (90 + 180 * n) / B + C_deg
@@ -292,11 +290,9 @@ elif menu == "4. 탄젠트(Tangent) 함수 개형":
                     line_color="orange"
                 )
 
-        # 탄젠트 곡선 추가
         fig.add_trace(go.Scatter(x=x_deg, y=y_user, mode='lines', name='변형된 Tan', line=dict(color='green', width=3)))
         fig.add_trace(go.Scatter(x=x_deg, y=y_base, mode='lines', name='기본 Tan (비교용)', opacity=0.3, line=dict(color='gray', dash='dash')))
 
-        # 범례용 가짜 트레이스 (점근선 설명 표시)
         fig.add_trace(go.Scatter(x=[None], y=[None], mode='lines', name='점근선 (Asymptote)', line=dict(color='orange', dash='dash', width=1.5)))
 
         fig.update_xaxes(title_text="<b>X 축 (각도 °)</b>", range=[-360, 720], dtick=180, zeroline=True, zerolinewidth=2, zerolinecolor='black')
@@ -305,58 +301,186 @@ elif menu == "4. 탄젠트(Tangent) 함수 개형":
         fig.update_layout(title="탄젠트 함수 개형 및 점근선 시각화", height=550, margin=dict(l=20, r=20, t=40, b=20))
         st.plotly_chart(fig, use_container_width=True)
 
-        # 점근선 좌표 안내
         if asymptotes:
             asym_str = ", ".join([f"{x:.1f}°" for x in asymptotes[:5]])
             st.info(f"📍 **현재 화면 영역 내 주요 점근선 위치**: {asym_str} ...")
 
 
 # ==============================================================================
-# [모듈 5] 📝 학습 점검 퀴즈 & 실시간 피드백
+# [모듈 5] 📝 무한 동적 퀴즈 (난이도 선택 및 동적 생성)
 # ==============================================================================
-elif menu == "5. 📝 학습 점검 퀴즈":
-    st.title("5. 삼각함수 개념 학습 점검 퀴즈")
-    st.write("학습한 내용을 바탕으로 문제를 풀어보세요! 정답을 제출하면 **즉시 상세한 피드백**이 제공됩니다.")
-    st.markdown("---")
+elif menu == "5. 📝 무한 동적 퀴즈 (난이도 선택)":
+    st.title("5. 맞춤형 무한 삼각함수 퀴즈")
+    st.write("자신의 실력에 맞는 난이도를 선택하면 문제 생성이 무한으로 진행됩니다!")
 
-    # Q1
-    st.subheader("Q1. 단위원에서 각도 θ에 대응하는 동경 끝점 P(x, y)의 X좌표가 의미하는 삼각함수는 무엇인가요?")
-    q1_ans = st.radio("선택하세요:", ["사인 (sin θ)", "코사인 (cos θ)", "탄젠트 (tan θ)", "코탄젠트 (cot θ)"], key="q1")
-    
-    if st.button("Q1 정답 확인", key="btn1"):
-        if q1_ans == "코사인 (cos θ)":
-            st.success("🎉 **정답입니다!**\n\n**해설**: 단위원(r=1)에서 점 P의 X좌표는 $\cos\\theta$, Y좌표는 $\sin\\theta$입니다.")
-        else:
-            st.error("❌ **틀렸습니다.**")
-            st.info("💡 **피드백**: $X$좌표는 **코사인($\cos\\theta$)**입니다! 반대로 $Y$좌표가 사인($\sin\\theta$)입니다.")
+    # 난이도 선택
+    difficulty = st.select_slider(
+        "🌱 난이도를 선택하세요:",
+        options=["초급 (기념 개념 & 단위원)", "중급 (주기 & 최댓값/최솟값)", "고급 (복합 변형 & 점근선)"]
+    )
 
     st.markdown("---")
 
-    # Q2
-    st.subheader("Q2. 함수 $y = 3\sin(2x)$의 주기(Period)는 몇 도(°)인가요?")
-    q2_ans = st.radio("선택하세요:", ["90°", "180°", "360°", "720°"], key="q2")
-    
-    if st.button("Q2 정답 확인", key="btn2"):
-        if q2_ans == "180°":
-            st.success("🎉 **정답입니다!**\n\n**해설**: 사인 함수의 기본 주기는 $360^\circ$입니다. 계수 $B=2$이므로 주기는 $\\frac{360^\circ}{2} = 180^\circ$가 됩니다.")
-        else:
-            st.error("❌ **틀렸습니다.**")
-            st.info("💡 **피드백**: 주기는 $\\frac{\text{기본주기}(360^\circ)}{B}$ 공식으로 계산합니다. $B=2$이므로 $360 / 2 = 180^\circ$입니다.")
+    # 문제 생성 함수
+    def generate_question(diff):
+        if diff == "초급 (기념 개념 & 단위원)":
+            q_type = random.choice(["definition", "special_angle", "period_basic"])
+            
+            if q_type == "definition":
+                target = random.choice(["X좌표", "Y좌표"])
+                ans = "코사인(cos)" if target == "X좌표" else "사인(sin)"
+                wrong = ["사인(sin)", "탄젠트(tan)", "코탄젠트(cot)"] if ans == "코사인(cos)" else ["코사인(cos)", "탄젠트(tan)", "코탄젠트(cot)"]
+                options = [ans] + wrong[:3]
+                random.shuffle(options)
+                return {
+                    "question": f"단위원(반지름=1) 위를 움직이는 동경의 끝점 P(x, y)에서 **{target}**가 의미하는 삼각함수는?",
+                    "options": options,
+                    "answer": ans,
+                    "feedback": f"단위원 상에서 점 P의 X좌표는 $\cos\\theta$, Y좌표는 $\sin\\theta$입니다."
+                }
+            elif q_type == "special_angle":
+                angle = random.choice([0, 30, 45, 60, 90])
+                func = random.choice(["sin", "cos"])
+                
+                vals = {
+                    ("sin", 0): "0", ("sin", 30): "1/2", ("sin", 45): "√2/2", ("sin", 60): "√3/2", ("sin", 90): "1",
+                    ("cos", 0): "1", ("cos", 30): "√3/2", ("cos", 45): "√2/2", ("cos", 60): "1/2", ("cos", 90): "0"
+                }
+                ans = vals[(func, angle)]
+                all_opts = ["0", "1/2", "√2/2", "√3/2", "1"]
+                options = list(set([ans] + random.sample(all_opts, 3)))
+                while len(options) < 4:
+                    options = list(set(options + random.sample(all_opts, 1)))
+                random.shuffle(options)
+                
+                return {
+                    "question": f"$\\{func}({angle}^\circ)$의 값은 얼마입니까?",
+                    "options": options,
+                    "answer": ans,
+                    "feedback": f"특수각 값: $\sin(30^\circ)=1/2$, $\sin(45^\circ)=\sqrt{{2}}/2$, $\sin(60^\circ)=\sqrt{{3}}/2$ 등을 암기해두세요!"
+                }
+            else:
+                func = random.choice(["sin", "cos", "tan"])
+                ans = "180°" if func == "tan" else "360°"
+                options = ["90°", "180°", "270°", "360°"]
+                return {
+                    "question": f"기본 삼각함수 $y = \{func}(x)$의 기본 주기(Period)는 얼마입니까?",
+                    "options": options,
+                    "answer": ans,
+                    "feedback": f"$\sin(x)$와 $\cos(x)$의 주기는 $360^\circ$이며, $\\tan(x)$의 주기는 $180^\circ$입니다."
+                }
 
-    st.markdown("---")
+        elif diff == "중급 (주기 & 최댓값/최솟값)":
+            q_type = random.choice(["period_calc", "max_min"])
+            
+            if q_type == "period_calc":
+                B = random.choice([2, 3, 4, 6])
+                func = random.choice(["sin", "cos"])
+                period = 360 // B
+                ans = f"{period}°"
+                options = [f"{period}°", f"{period*2}°", f"{360*B}°", f"{180//B}°"]
+                options = list(set(options))
+                while len(options) < 4:
+                    options.append(f"{random.randint(1, 10)*30}°")
+                random.shuffle(options)
+                
+                return {
+                    "question": f"함수 $y = \{func}({B}x)$의 주기는 얼마입니까?",
+                    "options": options,
+                    "answer": ans,
+                    "feedback": f"삼각함수 $y = \{func}(Bx)$의 주기는 $\\frac{{360^\circ}}{{B}}$입니다. 따라서 $\\frac{{360^\circ}}{{{B}}} = {period}^\circ$가 됩니다."
+                }
+            else:
+                A = random.randint(2, 5)
+                D = random.randint(1, 3)
+                func = random.choice(["sin", "cos"])
+                max_val = A + D
+                ans = f"{max_val}"
+                options = [f"{max_val}", f"{A}", f"{A-D}", f"{max_val+2}"]
+                random.shuffle(options)
+                
+                return {
+                    "question": f"함수 $y = {A}\cdot\{func}(x) + {D}$의 **최댓값**은 얼마입니까?",
+                    "options": options,
+                    "answer": ans,
+                    "feedback": f"최댓값 공식은 $A + D$입니다. ($A={A}$, $D={D} \Rightarrow {A}+{D}={max_val}$)"
+                }
 
-    # Q3
-    st.subheader("Q3. 탄젠트 함수 $y = \tan(x)$의 점근선이 존재하는 이유로 가장 적절한 것은?")
-    q3_ans = st.radio("선택하세요:", [
-        "진폭이 너무 커져서", 
-        "tan θ = sin θ / cos θ 에서 cos θ = 0 이 되어 분모가 0이 되기 때문에", 
-        "Y축 평행이동 때문에", 
-        "X축 대칭 이동 때문에"
-    ], key="q3")
+        else: # 고급
+            q_type = random.choice(["tan_asymptote", "complex_period", "phase_shift"])
+            
+            if q_type == "tan_asymptote":
+                B = random.choice([2, 3])
+                # Bx = 90 => x = 90/B
+                asym = 90 // B
+                ans = f"{asym}°"
+                options = [f"{asym}°", f"{90}°", f"{180//B}°", f"{asym*2}°"]
+                random.shuffle(options)
+                
+                return {
+                    "question": f"탄젠트 함수 $y = \\tan({B}x)$의 첫 번째 양의 **점근선**은 $x = $ 몇 도(°)에 위치합니까?",
+                    "options": options,
+                    "answer": ans,
+                    "feedback": f"$\\tan(\\theta)$의 점근선은 $\\theta = 90^\circ + 180^\circ \cdot n$에서 발생합니다. 즉 ${B}x = 90^\circ \Rightarrow x = {asym}^\circ$입니다."
+                }
+            elif q_type == "complex_period":
+                B = random.choice([2, 4])
+                # y = tan(Bx) 주기 = 180/B
+                period = 180 // B
+                ans = f"{period}°"
+                options = [f"{period}°", f"{360//B}°", f"{180*B}°", f"{90//B}°"]
+                random.shuffle(options)
+                
+                return {
+                    "question": f"함수 $y = 3\\tan({B}x - 45^\circ) + 1$의 주기는 몇 도(°)입니까?",
+                    "options": options,
+                    "answer": ans,
+                    "feedback": f"탄젠트의 기본 주기는 $180^\circ$입니다. 평행이동이나 진폭은 주기에 영향을 주지 않으므로 주기는 $\\frac{{180^\circ}}{{{B}}} = {period}^\circ$가 됩니다."
+                }
+            else:
+                C = random.choice([30, 45, 60, 90])
+                ans = f"오른쪽으로 {C}°"
+                options = [f"오른쪽으로 {C}°", f"왼쪽으로 {C}°", f"위쪽으로 {C}", f"아래쪽으로 {C}"]
+                random.shuffle(options)
+                
+                return {
+                    "question": f"함수 $y = \cos(x - {C}^\circ)$는 기본 $y = \cos(x)$ 그래프를 $X$축 방향으로 어떻게 이동한 것인가요?",
+                    "options": options,
+                    "answer": ans,
+                    "feedback": f"$f(x - C)$ 형태는 $X$축 **양의 방향(오른쪽)**으로 $C$만큼 평행이동한 것입니다."
+                }
+
+    # Session State 문제 상태 초기화
+    if "current_q" not in st.session_state or st.session_state.get("last_diff") != difficulty:
+        st.session_state.current_q = generate_question(difficulty)
+        st.session_state.last_diff = difficulty
+        st.session_state.answered = False
+
+    q_data = st.session_state.current_q
+
+    # 문제 출력
+    st.markdown(f"### ❓ **문제:** {q_data['question']}")
     
-    if st.button("Q3 정답 확인", key="btn3"):
-        if q3_ans == "tan θ = sin θ / cos θ 에서 cos θ = 0 이 되어 분모가 0이 되기 때문에":
-            st.success("🎉 **정답입니다!**\n\n**해설**: $\\tan\\theta = \\frac{\\sin\\theta}{\\cos\\theta}$에서 $\\cos\\theta = 0$이 되는 $90^\circ, 270^\circ \dots$ 등의 지점에서는 값이 정의되지 않아 점근선이 발생합니다.")
+    # 답안 선택
+    user_choice = st.radio("정답을 선택하세요:", q_data["options"], key=f"radio_{q_data['question']}")
+
+    col_btn1, col_btn2 = st.columns([1, 1])
+
+    with col_btn1:
+        submit_btn = st.button("✅ 정답 제출하기", use_container_width=True)
+    with col_btn2:
+        next_btn = st.button("🔄 다음 문제 풀기 (새 문제 생성)", use_container_width=True)
+
+    if submit_btn:
+        st.session_state.answered = True
+        if user_choice == q_data["answer"]:
+            st.balloons()
+            st.success(f"🎉 **정답입니다!**\n\n**해설**: {q_data['feedback']}")
         else:
-            st.error("❌ **틀렸습니다.**")
-            st.info("💡 **피드백**: 분모인 **$\cos\\theta$가 0이 되는 지점**에서는 수학적으로 나눗셈이 정의되지 않기 때문에 점근선이 생깁니다.")
+            st.error(f"❌ **틀렸습니다.** (선택한 답: {user_choice} / 정답: {q_data['answer']})")
+            st.info(f"💡 **맞춤 피드백 및 해설**: {q_data['feedback']}")
+
+    if next_btn:
+        st.session_state.current_q = generate_question(difficulty)
+        st.session_state.answered = False
+        st.rerun()
